@@ -4,7 +4,7 @@ import {config} from "dotenv";
 import path from "path";
 import {fileURLToPath} from "url";
 import {stringify} from "querystring";
-import { createClient, SchemaFieldTypes } from "redis";
+import { createClient, defineScript, SchemaFieldTypes } from "redis";
 
 const { resolve } = path;
 const __filename = fileURLToPath(import.meta.url);
@@ -16,7 +16,9 @@ const trainIndex = "idx:trains";
 const reservationIndex = "idx:reservations";
 const trainKey = "trains:9863";
 
-const client = createClient({url: process.env.CACHE});
+const client = createClient({
+    url: process.env.CACHE
+});
 client.connect();
 
 async function createTrainIndex(client) {
@@ -109,7 +111,6 @@ init()
 					// check if the current_seat_no is equal to seat_no
 					const trainDetails = await isolatedClient.json.get(trainKey);
 					if (trainDetails.current_seat_no >= trainDetails.seat_no) {
-						res.status(400).send("Seat filed");
 						return ["FAIL", "FAIL"];
 					} else {
 						console.log("train details: ", trainDetails);
@@ -123,7 +124,10 @@ init()
 				if(r0 == "OK" && r1 == "OK") {
 					console.log("inserted document: ", number);
 					res.status(200).end(stringify(number));
-				} else {
+				} else if(r0 == "FAIL", r1 == "FAIL") {
+                    res.status(400).send("seat filed!");
+                    return;
+                } else {
 					console.log("failed: ", r0, r1);
 				}
 			} catch (error) {
